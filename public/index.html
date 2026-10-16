@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>스트림인사이트 · StreamInsight</title>
+  <meta name="description" content="치지직 · SOOP · 트위치 스트리머 시청자 통계, 랭킹, 카테고리 분석을 모두 무료로.">
+  <meta name="theme-color" content="#2f6bff">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="/css/app.css">
+  <script>
+    try {
+      const t = JSON.parse(localStorage.getItem('si:pref:theme'));
+      if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+    } catch {}
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#app">본문으로 건너뛰기</a>
+  <div id="demo-banner" class="demo-banner" hidden>
+    지금 보고 계신 데이터는 화면 확인용 <b>가상 데모 데이터</b>입니다. 실제 수집은 <code>npm start</code>로 실행하세요.
+  </div>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="logo" href="#/" aria-label="스트림인사이트 홈">
+        <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><rect width="32" height="32" rx="9" fill="var(--accent)"/><path d="M8 21l5-6 4 4 7-9" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="24" cy="10" r="2.2" fill="#fff"/></svg>
+        <span>스트림인사이트</span>
+      </a>
+      <div class="search">
+        <input id="search" type="search" placeholder="스트리머 검색 ( / )" autocomplete="off" aria-label="스트리머 검색">
+        <div id="search-results" class="search-results" hidden></div>
+      </div>
+      <button id="theme-toggle" class="icon-btn" type="button" aria-label="테마 전환">🌙</button>
+    </div>
+    <nav class="nav" aria-label="주요 메뉴">
+      <a href="#/" data-nav="home">홈</a>
+      <a href="#/live" data-nav="live">실시간</a>
+      <a href="#/ranking" data-nav="ranking">랭킹</a>
+      <a href="#/categories" data-nav="categories">카테고리</a>
+      <a href="#/platforms" data-nav="platforms">플랫폼</a>
+      <a href="#/compare" data-nav="compare">비교</a>
+      <a href="#/favorites" data-nav="favorites">즐겨찾기</a>
+      <a href="#/about" data-nav="about">안내</a>
+    </nav>
+  </header>
+  <main id="app" class="container" tabindex="-1"></main>
+  <footer class="footer">
+    <div class="container">
+      <div id="footer-status" class="footer-status"></div>
+      <div class="muted small">스트림인사이트는 각 플랫폼의 공개 API로 직접 수집한 데이터를 제공합니다. 모든 기능은 무료이며 광고가 없습니다.</div>
+    </div>
+  </footer>
+  <script src="/vendor/chart.umd.min.js"></script>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
