@@ -19,7 +19,7 @@ export async function render(ctx) {
       <div class="page-head">
         <div>
           <h1>지금 방송 현황</h1>
-          <p>치지직 · SOOP · 트위치 한국어 방송의 실시간 시청자 통계 <span class="free-badge">모든 기능 무료</span></p>
+          <p>치지직 · SOOP · 트위치 · 유튜브 한국어 방송의 실시간 시청자 통계 <span class="free-badge">모든 기능 무료</span></p>
         </div>
       </div>
 

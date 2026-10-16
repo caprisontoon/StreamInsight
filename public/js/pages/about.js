@@ -27,6 +27,7 @@ export async function render(ctx) {
         <li><b>치지직</b>: 라이브 목록 API (인기순, 커서 페이지네이션), 채널 API(팔로워)</li>
         <li><b>SOOP</b>: 메인 방송 목록 API (시청자순), 방송국 API(애청자 수)</li>
         <li><b>트위치</b>: 공식 Helix API, 한국어 방송 (API 키가 설정된 경우)</li>
+        <li><b>유튜브</b>: 공식 YouTube Data API. 한국 라이브를 1시간마다 검색해 찾고, 찾은 방송의 시청자 수는 매 주기 추적 (API 키가 설정된 경우, 뉴스 채널 제외)</li>
       </ul>
       <p>시청자 ${s ? num(s.minViewers) : 5}명 이상인 방송을 수집합니다. 팔로워 수는 방송 중인 상위 채널을 대상으로 하루 한 번 갱신합니다.</p>
 

@@ -7,7 +7,7 @@ import { kstDate, nowSec, sleep } from './util.js';
  * 수집 시각은 주기 경계(예: 5분 단위)에 맞춰 정렬되어 플랫폼 간 비교가 쉽다.
  */
 export function createScheduler(db, cfg, log = console) {
-  const collectors = createCollectors(cfg);
+  const collectors = createCollectors(cfg, { db });
   let timer = null;
   let followerRunning = false;
   let lastPruneDate = null;

@@ -38,6 +38,7 @@ export const PLATFORMS = {
   chzzk: { id: 'chzzk', name: '치지직', color: '#00b679' },
   soop: { id: 'soop', name: 'SOOP', color: '#2f6bff' },
   twitch: { id: 'twitch', name: '트위치', color: '#9146ff' },
+  youtube: { id: 'youtube', name: '유튜브', color: '#ff2d2d' },
 };
 export const PLATFORM_IDS = Object.keys(PLATFORMS);
 export const platformName = (p) => PLATFORMS[p]?.name ?? p;
@@ -46,9 +47,11 @@ export function channelUrl(platform, id, login) {
   if (platform === 'chzzk') return `https://chzzk.naver.com/${encodeURIComponent(id)}`;
   if (platform === 'soop') return `https://ch.sooplive.co.kr/${encodeURIComponent(id)}`;
   if (platform === 'twitch') return `https://www.twitch.tv/${encodeURIComponent(login || id)}`;
+  if (platform === 'youtube') return login ? `https://www.youtube.com/${encodeURIComponent(login).replace(/^%40/, '@')}` : `https://www.youtube.com/channel/${encodeURIComponent(id)}`;
   return '#';
 }
-export function liveUrl(platform, id, login) {
+export function liveUrl(platform, id, login, streamKey) {
+  if (platform === 'youtube') return streamKey ? `https://www.youtube.com/watch?v=${encodeURIComponent(streamKey)}` : `https://www.youtube.com/channel/${encodeURIComponent(id)}/live`;
   if (platform === 'chzzk') return `https://chzzk.naver.com/live/${encodeURIComponent(id)}`;
   if (platform === 'soop') return `https://play.sooplive.co.kr/${encodeURIComponent(id)}`;
   return channelUrl(platform, id, login);

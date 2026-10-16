@@ -8,13 +8,14 @@ try {
 
 const env = process.env;
 const int = (v, d) => (v === undefined || v === '' ? d : Number.parseInt(v, 10));
+const list = (v) => String(v || '').split(',').map((s) => s.trim()).filter(Boolean);
 const bool = (v, d) => (v === undefined || v === '' ? d : !['0', 'false', 'no', 'off'].includes(String(v).toLowerCase()));
 
 export const config = {
   port: int(env.PORT, 3000),
   dbPath: path.resolve(env.DB_PATH || 'data/streaminsight.db'),
   intervalSec: int(env.COLLECT_INTERVAL_SEC, 300),
-  platforms: (env.PLATFORMS || 'chzzk,soop,twitch').split(',').map((s) => s.trim()).filter(Boolean),
+  platforms: (env.PLATFORMS || 'chzzk,soop,twitch,youtube').split(',').map((s) => s.trim()).filter(Boolean),
   minViewers: int(env.MIN_VIEWERS, 5),
   maxPages: int(env.MAX_PAGES, 40),
   snapshotRetentionDays: int(env.SNAPSHOT_RETENTION_DAYS, 180),
@@ -27,10 +28,22 @@ export const config = {
   twitchClientId: env.TWITCH_CLIENT_ID || '',
   twitchClientSecret: env.TWITCH_CLIENT_SECRET || '',
   twitchLanguage: env.TWITCH_LANGUAGE || 'ko',
+  youtubeApiKey: env.YOUTUBE_API_KEY || '',
+  youtubeChannelIds: list(env.YOUTUBE_CHANNEL_IDS),
+  youtubeSearchIntervalMin: int(env.YOUTUBE_SEARCH_INTERVAL_MIN, 60),
+  youtubeSearchPages: int(env.YOUTUBE_SEARCH_PAGES, 2),
+  youtubeRssIntervalMin: int(env.YOUTUBE_RSS_INTERVAL_MIN, 10),
+  youtubeRegion: env.YOUTUBE_REGION || 'KR',
+  youtubeLanguage: env.YOUTUBE_LANGUAGE || 'ko',
+  youtubeKoreanOnly: bool(env.YOUTUBE_KOREAN_ONLY, true),
+  youtubeExcludeCategories: list(env.YOUTUBE_EXCLUDE_CATEGORIES ?? '25'),
+  youtubeDailyQuota: int(env.YOUTUBE_DAILY_QUOTA, 10000),
+  youtubeQuotaReserve: int(env.YOUTUBE_QUOTA_RESERVE, 2000),
 };
 
 export const PLATFORMS = {
   chzzk: { id: 'chzzk', name: '치지직' },
   soop: { id: 'soop', name: 'SOOP' },
   twitch: { id: 'twitch', name: '트위치' },
+  youtube: { id: 'youtube', name: '유튜브' },
 };

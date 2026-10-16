@@ -23,7 +23,7 @@ export async function render(ctx) {
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           ${d.prevId ? html`<a class="btn btn-sm" href="#/stream/${d.prevId}">← 이전 방송</a>` : ''}
           ${d.nextId ? html`<a class="btn btn-sm" href="#/stream/${d.nextId}">다음 방송 →</a>` : ''}
-          ${s.live ? html`<a class="btn btn-sm btn-primary" href="${liveUrl(s.platform, s.channelId)}" target="_blank" rel="noopener">${platformName(s.platform)}에서 시청 ↗</a>` : ''}
+          ${s.live ? html`<a class="btn btn-sm btn-primary" href="${liveUrl(s.platform, s.channelId, ch.login, s.streamKey)}" target="_blank" rel="noopener">${platformName(s.platform)}에서 시청 ↗</a>` : ''}
         </div>
       </div>
       <div class="card" style="margin-bottom:16px">${who({ ...ch, platform: s.platform, channelId: s.channelId }, ch.followers ? `팔로워 ${num(ch.followers)}명` : '')}</div>
