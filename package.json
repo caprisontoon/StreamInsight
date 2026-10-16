@@ -2,20 +2,23 @@
   "name": "streaminsight",
   "version": "1.0.0",
   "private": true,
-  "description": "스트림인사이트 - 치지직 · SOOP · 트위치 방송 시청자 통계 서비스 (모든 기능 무료)",
+  "description": "스트림인사이트 - 치지직 · SOOP · 트위치 · 유튜브 방송 시청자 통계 서비스 (모든 기능 무료)",
   "type": "module",
   "engines": {
-    "node": ">=22.13"
+    "node": "22.x"
   },
   "scripts": {
-    "start": "node --disable-warning=ExperimentalWarning src/index.js",
-    "collect:once": "node --disable-warning=ExperimentalWarning src/index.js --collect-once",
-    "demo": "node --disable-warning=ExperimentalWarning scripts/seed-demo.js && node --disable-warning=ExperimentalWarning src/index.js --demo",
-    "seed:demo": "node --disable-warning=ExperimentalWarning scripts/seed-demo.js",
-    "test": "node --disable-warning=ExperimentalWarning --test \"test/**/*.test.js\""
+    "start": "node src/main.js",
+    "build": "node scripts/copy-vendor.js",
+    "collect:once": "node src/main.js --collect-once",
+    "demo": "node scripts/seed-demo.js && node src/main.js --demo",
+    "seed:demo": "node scripts/seed-demo.js",
+    "test": "node --test \"test/**/*.test.js\""
   },
   "license": "UNLICENSED",
   "dependencies": {
+    "@libsql/client": "^0.18.0",
+    "@vercel/functions": "^3.10.1",
     "chart.js": "^4.5.1"
   }
 }

@@ -6,7 +6,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { openDb } from '../src/db.js';
+import { get, migrate, openDb } from '../src/db.js';
 import { ingest, recordFollowers, recordStatus } from '../src/ingest.js';
 import { kstDate, nowSec } from '../src/util.js';
 
@@ -15,7 +15,11 @@ const DAYS = Number(process.env.DEMO_DAYS || 30);
 const INTERVAL = Number(process.env.COLLECT_INTERVAL_SEC || 300);
 
 for (const suffix of ['', '-wal', '-shm']) fs.rmSync(DB_PATH + suffix, { force: true });
-const db = openDb(DB_PATH);
+const db = openDb(`file:${DB_PATH}`);
+await migrate(db);
+// 데모 데이터는 다시 만들 수 있으므로 디스크 동기화를 끄고 빠르게 쓴다
+await db.execute('PRAGMA journal_mode = WAL');
+await db.execute('PRAGMA synchronous = OFF');
 
 let seed = 20261016;
 const rand = () => {
@@ -126,25 +130,23 @@ for (let ts = start; ts <= end; ts += INTERVAL) {
     }
   }
   for (const [platform, items] of Object.entries(byPlatform)) {
-    ingest(db, platform, items, ts, INTERVAL);
+    await ingest(db, platform, items, ts, INTERVAL);
   }
 
   // 하루 한 번 팔로워 기록
   if ((ts + 9 * 3600) % 86400 === 0 || ts === end) {
-    db.exec('BEGIN');
     for (const ch of channels) {
       ch.followers = Math.round(ch.followers * (1 + 0.002 + (ch.growth - 1) * 0.01 + gauss() * 0.001));
-      recordFollowers(db, ch.platform, ch.id, ch.followers, ts);
+      await recordFollowers(db, ch.platform, ch.id, ch.followers, ts);
     }
-    db.exec('COMMIT');
   }
 }
 
 for (const platform of Object.keys(PLATFORM_SETUP)) {
-  const p = db.prepare('SELECT viewers, channels FROM platform_snapshots WHERE platform = ? ORDER BY ts DESC LIMIT 1').get(platform);
-  recordStatus(db, platform, { ts: end, ok: true, liveCount: p?.channels ?? 0, totalViewers: p?.viewers ?? 0, durationMs: 0 });
+  const p = await get(db, 'SELECT viewers, channels FROM platform_snapshots WHERE platform = ? ORDER BY ts DESC LIMIT 1', [platform]);
+  await recordStatus(db, platform, { ts: end, ok: true, liveCount: p?.channels ?? 0, totalViewers: p?.viewers ?? 0, durationMs: 0 });
 }
 
-const c = db.prepare('SELECT (SELECT COUNT(*) FROM streams) s, (SELECT COUNT(*) FROM snapshots) n').get();
-console.log(`완료 (${((Date.now() - t0) / 1000).toFixed(1)}초): 방송 ${c.s}개, 스냅샷 ${c.n.toLocaleString()}개, 마지막 날짜 ${kstDate(end)}`);
+const c = await get(db, 'SELECT COUNT(*) s FROM streams');
+console.log(`완료 (${((Date.now() - t0) / 1000).toFixed(1)}초): 방송 ${c.s}개, 마지막 날짜 ${kstDate(end)}`);
 db.close();

@@ -48,6 +48,8 @@ export async function render(ctx) {
           <span class="muted small">마지막 성공 ${p.lastSuccessAt ? ago(p.lastSuccessAt) : '없음'}</span>
           <span class="num">${p.liveCount !== null ? `방송 ${num(p.liveCount)}개` : ''}</span></div>`) : html`<div class="muted">아직 수집 기록이 없습니다</div>`}
       </div>
-      <p class="muted small">추적 중인 채널 ${num(s.channels)}개 · 방송 ${num(s.streams)}개 · 기록 시작 ${s.since || '-'}</p></div>` : ''}
+      <p class="muted small">추적 중인 채널 ${num(s.channels)}개 · 방송 ${num(s.streams)}개 · 기록 시작 ${s.since || '-'}</p>
+      <p class="muted small">지금 방송 수 기준 DB 쓰기량 추정: 월 약 <b>${num(s.estimatedMonthlyWrites)}</b>행
+        ${s.estimatedMonthlyWrites > 10000000 ? html`<span class="delta up">(Turso 무료 한도 1,000만 행 초과 예상 · 수집 주기나 최소 시청자 수를 늘려 주세요)</span>` : ''}</p></div>` : ''}
     </div>`);
 }

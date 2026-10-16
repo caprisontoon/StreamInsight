@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, test } from 'node:test';
 import { createYoutubeCollector, isKorean, normalizeYoutubeVideo } from '../src/collectors/youtube.js';
-import { openDb } from '../src/db.js';
+import { migrate, openDb } from '../src/db.js';
 import { ingest } from '../src/ingest.js';
 
 const realFetch = globalThis.fetch;
@@ -114,8 +114,9 @@ test('쿼터가 예약분 이하로 남으면 검색을 건너뛴다', async () 
 });
 
 test('DB에 방송 중으로 남은 영상과 지정 채널 RSS 영상을 추적한다', async () => {
-  const db = openDb(':memory:');
-  ingest(db, 'youtube', [{ channelId: 'UCv5', channelName: 'x', streamKey: 'v5', viewers: 10 }], 1792100000, 300);
+  const db = openDb('file::memory:');
+  await migrate(db);
+  await ingest(db, 'youtube', [{ channelId: 'UCv5', channelName: 'x', streamKey: 'v5', viewers: 10 }], 1792100000, 300);
   const log = [];
   mockApi(log, []);
   const yt = createYoutubeCollector({ ...cfg, youtubeChannelIds: ['UCabc'] }, { db });
@@ -129,4 +130,19 @@ test('구독자 수 조회', async () => {
   mockApi([]);
   const yt = createYoutubeCollector(cfg);
   assert.equal(await yt.fetchFollowers('UCv1'), 4321);
+});
+
+test('상태(state)가 다음 호출로 이어진다 (서버리스 대비)', async () => {
+  const log = [];
+  mockApi(log);
+  const state = {};
+  await createYoutubeCollector(cfg, { state }).fetchLives();
+  const saved = JSON.parse(JSON.stringify(state));
+  assert.equal(saved.youtube.quota.used, 102);
+  log.length = 0;
+  // 새 인스턴스라도 저장된 상태로 이어서: 검색 주기 전이므로 검색하지 않는다
+  const again = await createYoutubeCollector(cfg, { state: saved }).fetchLives();
+  assert.deepEqual(again.map((l) => l.streamKey), ['v1']);
+  assert.equal(log.filter((u) => u.pathname.endsWith('/search')).length, 0);
+  assert.equal(saved.youtube.quota.used, 103);
 });
