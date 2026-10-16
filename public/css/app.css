@@ -18,6 +18,7 @@
   --chzzk: #00b679;
   --soop: #2f6bff;
   --twitch: #9146ff;
+  --youtube: #ff2d2d;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -37,6 +38,8 @@
     --chzzk: #19d38f;
     --soop: #5b8cff;
     --twitch: #a970ff;
+  --youtube: #ff4e45;
+    --youtube: #ff4e45;
     color-scheme: dark;
   }
 }
@@ -56,6 +59,7 @@
   --chzzk: #19d38f;
   --soop: #5b8cff;
   --twitch: #a970ff;
+  --youtube: #ff4e45;
   color-scheme: dark;
 }
 
@@ -160,6 +164,7 @@ main.container { padding-top: 20px; padding-bottom: 48px; min-height: 70vh; outl
 .chip-chzzk.active { background: var(--chzzk); border-color: var(--chzzk); color: #fff; }
 .chip-soop.active { background: var(--soop); border-color: var(--soop); color: #fff; }
 .chip-twitch.active { background: var(--twitch); border-color: var(--twitch); color: #fff; }
+.chip-youtube.active { background: var(--youtube); border-color: var(--youtube); color: #fff; }
 .chip.active .pdot { background: #fff; }
 .period-picker { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .custom-range { display: flex; gap: 6px; align-items: center; }
@@ -182,10 +187,12 @@ input.input:focus { border-color: var(--accent); }
 .pbadge-chzzk { background: var(--chzzk); }
 .pbadge-soop { background: var(--soop); }
 .pbadge-twitch { background: var(--twitch); }
+.pbadge-youtube { background: var(--youtube); }
 .pdot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 .pdot-chzzk { background: var(--chzzk); }
 .pdot-soop { background: var(--soop); }
 .pdot-twitch { background: var(--twitch); }
+.pdot-youtube { background: var(--youtube); }
 .pdot.err { background: var(--live); }
 .avatar { position: relative; width: var(--size); height: var(--size); border-radius: 50%; flex-shrink: 0; overflow: hidden; background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--rc, transparent); }
 .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -193,6 +200,7 @@ input.input:focus { border-color: var(--accent); }
 .ring-chzzk { --rc: var(--chzzk); }
 .ring-soop { --rc: var(--soop); }
 .ring-twitch { --rc: var(--twitch); }
+.ring-youtube { --rc: var(--youtube); }
 .live-pill { display: inline-flex; align-items: center; gap: 4px; background: var(--live); color: #fff; font-size: 0.72rem; font-weight: 800; padding: 2px 7px; border-radius: 6px; white-space: nowrap; }
 .live-pill b { font-weight: 700; }
 .live-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: #fff; animation: pulse 1.6s infinite; }

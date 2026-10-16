@@ -21,7 +21,7 @@ const MIME = {
   '.webmanifest': 'application/manifest+json',
 };
 
-const PLATFORM_LABEL = { chzzk: '치지직', soop: 'SOOP', twitch: '트위치' };
+const PLATFORM_LABEL = { chzzk: '치지직', soop: 'SOOP', twitch: '트위치', youtube: '유튜브' };
 const r1 = (n) => Math.round(n * 10) / 10;
 
 function sendJson(res, status, body) {

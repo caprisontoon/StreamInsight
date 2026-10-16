@@ -260,7 +260,8 @@ export function categories(db, q) {
       COUNT(DISTINCT d.platform || ':' || d.channel_id) channels,
       SUM(CASE WHEN d.platform = 'chzzk' THEN d.viewer_sec ELSE 0 END) chzzk_sec,
       SUM(CASE WHEN d.platform = 'soop' THEN d.viewer_sec ELSE 0 END) soop_sec,
-      SUM(CASE WHEN d.platform = 'twitch' THEN d.viewer_sec ELSE 0 END) twitch_sec
+      SUM(CASE WHEN d.platform = 'twitch' THEN d.viewer_sec ELSE 0 END) twitch_sec,
+      SUM(CASE WHEN d.platform = 'youtube' THEN d.viewer_sec ELSE 0 END) youtube_sec
     FROM daily d WHERE d.date BETWEEN ? AND ? ${where.length ? 'AND ' + where.join(' AND ') : ''}
       ${search ? 'AND d.category LIKE ?' : ''}
     GROUP BY d.category ORDER BY viewer_sec DESC LIMIT ?`).all(from, to, ...params, ...(search ? [`%${search}%`] : []), limit);
@@ -279,7 +280,7 @@ export function categories(db, q) {
       peak: r.peak,
       channels: r.channels,
       share: r.viewer_sec / totalSec,
-      byPlatform: { chzzk: r.chzzk_sec / 3600, soop: r.soop_sec / 3600, twitch: r.twitch_sec / 3600 },
+      byPlatform: { chzzk: r.chzzk_sec / 3600, soop: r.soop_sec / 3600, twitch: r.twitch_sec / 3600, youtube: r.youtube_sec / 3600 },
     })),
   };
 }
@@ -483,8 +484,8 @@ export function streamDetail(db, id) {
     SELECT SUM(viewer_sec) vs, SUM(air_sec) a FROM streams WHERE platform = ? AND channel_id = ? AND started_at BETWEEN ? AND ? AND id != ?`)
     .get(s.platform, s.channel_id, since, s.started_at, id);
   return {
-    stream: { ...mapStream(s), platform: s.platform, channelId: s.channel_id, currentViewers: s.current_viewers, adult: !!s.adult },
-    channel: ch ? { platform: ch.platform, channelId: ch.channel_id, name: ch.name, image: ch.image_url, followers: ch.followers } : null,
+    stream: { ...mapStream(s), platform: s.platform, channelId: s.channel_id, streamKey: s.stream_key, currentViewers: s.current_viewers, adult: !!s.adult },
+    channel: ch ? { platform: ch.platform, channelId: ch.channel_id, name: ch.name, login: ch.login, image: ch.image_url, followers: ch.followers } : null,
     timeline,
     segments,
     prevId: prevNext.prev,

@@ -32,6 +32,7 @@ const ADJ = ['졸린', '푸른', '수상한', '용감한', '느긋한', '반짝�
 const NOUN = ['고양이', '여우', '펭귄', '고래', '토끼', '판다', '부엉이', '다람쥐', '호랑이', '수달', '해파리', '거북이', '참새', '늑대', '햄스터', '라쿤', '돌고래', '코알라', '두더지', '사막여우'];
 const KR_CATS = ['토크', '리그 오브 레전드', '발로란트', '배틀그라운드', '메이플스토리', '마인크래프트', '종합 게임', '버추얼', '노래/음악', '스포츠', '전략적 팀 전투', '스타크래프트', '로스트아크', '먹방/쿡방', 'FC 온라인'];
 const TW_CATS = ['Just Chatting', 'League of Legends', 'VALORANT', 'Minecraft', 'PUBG: BATTLEGROUNDS', 'Teamfight Tactics', 'Lost Ark', 'Music', 'Overwatch 2', 'Apex Legends'];
+const YT_CATS = ['게임', '엔터테인먼트', '음악', '인물/블로그', '스포츠', '교육'];
 const TITLES = ['오늘도 달린다', '랭크 올리기 도전', '시청자 참여 게임', '수다 한 판', '신작 첫 플레이', '합방 with 친구들', '새벽 감성 방송', '대회 연습', '구독자 이벤트', '느긋한 저녁 방송', '공략 연구 중', '노래 신청 받아요'];
 
 const usedNames = new Set();
@@ -45,7 +46,7 @@ function makeName() {
   }
 }
 
-const PLATFORM_SETUP = { chzzk: { count: 80, scale: 1.0, cats: KR_CATS }, soop: { count: 80, scale: 1.1, cats: KR_CATS }, twitch: { count: 30, scale: 0.35, cats: TW_CATS } };
+const PLATFORM_SETUP = { chzzk: { count: 80, scale: 1.0, cats: KR_CATS }, soop: { count: 80, scale: 1.1, cats: KR_CATS }, twitch: { count: 30, scale: 0.35, cats: TW_CATS }, youtube: { count: 40, scale: 0.6, cats: YT_CATS } };
 
 const channels = [];
 for (const [platform, setup] of Object.entries(PLATFORM_SETUP)) {
@@ -100,7 +101,7 @@ for (let ts = start; ts <= end; ts += INTERVAL) {
   const progress = (ts - start) / (end - start);
   const dow = new Date((ts + 9 * 3600) * 1000).getUTCDay();
   const weekend = dow === 0 || dow === 6 ? 1.18 : 1;
-  const byPlatform = { chzzk: [], soop: [], twitch: [] };
+  const byPlatform = Object.fromEntries(Object.keys(PLATFORM_SETUP).map((p) => [p, []]));
 
   for (const ch of channels) {
     for (const d of [dayIdx - 1, dayIdx]) {

@@ -36,14 +36,23 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
 
 /** 타임아웃·재시도를 포함한 JSON 요청 */
-export async function fetchJson(url, { headers = {}, retries = 2, timeoutMs = 15000, method = 'GET', body } = {}) {
+export function fetchJson(url, opts = {}) {
+  return request(url, { ...opts, accept: 'application/json', parse: (res) => res.json() });
+}
+
+/** 타임아웃·재시도를 포함한 텍스트 요청 (RSS 등) */
+export function fetchText(url, opts = {}) {
+  return request(url, { ...opts, accept: '*/*', parse: (res) => res.text() });
+}
+
+async function request(url, { headers = {}, retries = 2, timeoutMs = 15000, method = 'GET', body, accept, parse }) {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const res = await fetch(url, {
         method,
         body,
-        headers: { 'User-Agent': UA, Accept: 'application/json', ...headers },
+        headers: { 'User-Agent': UA, Accept: accept, ...headers },
         signal: AbortSignal.timeout(timeoutMs),
       });
       if (!res.ok) {
@@ -53,7 +62,7 @@ export async function fetchJson(url, { headers = {}, retries = 2, timeoutMs = 15
         if (res.status >= 400 && res.status < 500 && res.status !== 429) throw Object.assign(err, { fatal: true });
         throw err;
       }
-      return await res.json();
+      return await parse(res);
     } catch (err) {
       lastErr = err;
       if (err.fatal || attempt === retries) break;

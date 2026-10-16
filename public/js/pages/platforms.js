@@ -17,10 +17,10 @@ export async function render(ctx) {
   }));
 
   ctx.el.innerHTML = String(html`
-    <div class="page-head"><div><h1>플랫폼 분석</h1><p>${periodLabel(range)} · 치지직 · SOOP · 트위치 비교</p></div></div>
+    <div class="page-head"><div><h1>플랫폼 분석</h1><p>${periodLabel(range)} · 치지직 · SOOP · 트위치 · 유튜브 비교</p></div></div>
     <div class="toolbar">${periodPicker(range)}</div>
     ${totals.length ? html`
-      <div class="grid grid-3">
+      <div class="grid grid-2">
         ${totals.map((t) => html`<div class="kpi platform" style="--pc:${platformColor(t.platform)}">
           <div class="kpi-label"><span class="pdot pdot-${t.platform}"></span>${platformName(t.platform)} <span class="muted">· 시청 점유율 ${pct(t.watchHours / totalWatch)}</span></div>
           <div class="kpi-value">${hours(t.watchHours)}</div>
