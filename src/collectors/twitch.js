@@ -22,21 +22,22 @@ export function normalizeTwitchStream(s) {
   };
 }
 
-export function createTwitchCollector(cfg) {
-  let token = null;
-  let tokenExp = 0;
-  const imageCache = new Map();
+export function createTwitchCollector(cfg, { state = {} } = {}) {
+  // 토큰과 프로필 이미지 캐시는 state(→ DB kv)에 두어 서버리스 호출 간에 재사용
+  const st = (state.twitch ??= {});
+  if (Object.keys(st.images ?? {}).length > 5000) st.images = {};
+  const images = (st.images ??= {});
 
   async function auth() {
-    if (token && Date.now() < tokenExp - 60000) return token;
+    if (st.token && Date.now() < st.tokenExp - 60000) return st.token;
     const url = new URL('https://id.twitch.tv/oauth2/token');
     url.searchParams.set('client_id', cfg.twitchClientId);
     url.searchParams.set('client_secret', cfg.twitchClientSecret);
     url.searchParams.set('grant_type', 'client_credentials');
     const json = await fetchJson(url, { method: 'POST' });
-    token = json.access_token;
-    tokenExp = Date.now() + (json.expires_in || 3600) * 1000;
-    return token;
+    st.token = json.access_token;
+    st.tokenExp = Date.now() + (json.expires_in || 3600) * 1000;
+    return st.token;
   }
   const helix = async (path) => {
     const t = await auth();
@@ -63,17 +64,17 @@ export function createTwitchCollector(cfg) {
       const lives = out.filter((x) => x.viewers >= cfg.minViewers);
 
       // 프로필 이미지는 100명 단위로 조회하고 캐시
-      const missing = [...new Set(lives.map((l) => l.channelId).filter((id) => !imageCache.has(id)))];
+      const missing = [...new Set(lives.map((l) => l.channelId).filter((id) => !Object.hasOwn(images, id)))];
       for (let i = 0; i < missing.length; i += 100) {
         const qs = missing.slice(i, i + 100).map((id) => `id=${id}`).join('&');
         try {
           const json = await helix(`/users?${qs}`);
-          for (const u of json?.data ?? []) imageCache.set(u.id, u.profile_image_url);
+          for (const u of json?.data ?? []) images[u.id] = u.profile_image_url;
         } catch {
           break;
         }
       }
-      for (const l of lives) l.channelImage = imageCache.get(l.channelId) ?? null;
+      for (const l of lives) l.channelImage = images[l.channelId] ?? null;
       return lives;
     },
     async fetchFollowers(channelId) {

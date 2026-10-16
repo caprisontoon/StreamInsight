@@ -1,17 +1,19 @@
 import path from 'node:path';
 import { config } from './config.js';
-import { openDb } from './db.js';
+import { migrate, openDb } from './db.js';
 import { createScheduler } from './scheduler.js';
-import { createServer } from './server.js';
+import { createServer } from './web.js';
 
 // --demo: 데모 데이터(data/demo.db)로 웹 서버만 실행
 if (process.argv.includes('--demo')) {
   config.demo = true;
   config.enableCollector = false;
-  config.dbPath = path.resolve(process.env.DEMO_DB_PATH || 'data/demo.db');
+  config.dbUrl = `file:${path.resolve(process.env.DEMO_DB_PATH || 'data/demo.db')}`;
+  config.dbAuthToken = '';
 }
 
-const db = openDb(config.dbPath);
+const db = openDb(config);
+await migrate(db);
 
 if (process.argv.includes('--collect-once')) {
   const scheduler = createScheduler(db, config);

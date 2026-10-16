@@ -1,7 +1,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import { createClient } from '@libsql/client';
 
+/**
+ * 저장소: libSQL (Turso 호환 SQLite)
+ *  - 로컬: file:data/streaminsight.db
+ *  - 배포(Vercel 등): TURSO_DATABASE_URL=libsql://... + TURSO_AUTH_TOKEN
+ *
+ * Turso 요금은 "읽은 행 / 쓴 행" 기준이라, 수집 주기마다 쓰는 행 수를 줄이도록 설계했다.
+ *  - 방송별 시청자 기록(timeline)과 카테고리 구간(segments)은 streams 행 하나에 이어 붙인다
+ *  - 방송 중인 동안의 일자별 집계는 streams.day_stats(JSON)에 두고, 방송이 끝날 때 daily 로 옮긴다
+ *  → 방송 1개당 수집 1회에 쓰기 1행
+ */
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS channels (
   platform TEXT NOT NULL,
@@ -16,9 +26,7 @@ CREATE TABLE IF NOT EXISTS channels (
   PRIMARY KEY (platform, channel_id)
 );
 CREATE INDEX IF NOT EXISTS idx_channels_name ON channels(name);
-CREATE INDEX IF NOT EXISTS idx_channels_last_live ON channels(last_live_at);
 
--- 방송(라이브 1회) 단위 집계
 CREATE TABLE IF NOT EXISTS streams (
   id INTEGER PRIMARY KEY,
   platform TEXT NOT NULL,
@@ -36,27 +44,16 @@ CREATE TABLE IF NOT EXISTS streams (
   viewer_sec INTEGER DEFAULT 0,
   air_sec INTEGER DEFAULT 0,
   samples INTEGER DEFAULT 0,
+  timeline TEXT,
+  segments TEXT,
+  day_stats TEXT,
   UNIQUE (platform, stream_key)
 );
 CREATE INDEX IF NOT EXISTS idx_streams_channel ON streams(platform, channel_id, started_at);
 CREATE INDEX IF NOT EXISTS idx_streams_open ON streams(ended_at, platform);
+CREATE INDEX IF NOT EXISTS idx_streams_seen ON streams(platform, last_seen_at);
 CREATE INDEX IF NOT EXISTS idx_streams_started ON streams(started_at);
 
--- 수집 주기마다 기록되는 방송별 시청자 수
-CREATE TABLE IF NOT EXISTS snapshots (
-  stream_id INTEGER NOT NULL,
-  platform TEXT NOT NULL,
-  channel_id TEXT NOT NULL,
-  ts INTEGER NOT NULL,
-  viewers INTEGER NOT NULL,
-  dur INTEGER NOT NULL,
-  category TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_snap_stream ON snapshots(stream_id, ts);
-CREATE INDEX IF NOT EXISTS idx_snap_channel ON snapshots(platform, channel_id, ts);
-CREATE INDEX IF NOT EXISTS idx_snap_ts ON snapshots(ts);
-
--- 플랫폼 전체 동시 시청자 / 방송 수
 CREATE TABLE IF NOT EXISTS platform_snapshots (
   platform TEXT NOT NULL,
   ts INTEGER NOT NULL,
@@ -66,7 +63,6 @@ CREATE TABLE IF NOT EXISTS platform_snapshots (
 );
 CREATE INDEX IF NOT EXISTS idx_psnap_ts ON platform_snapshots(ts);
 
--- KST 일자 × 채널 × 카테고리 집계 (랭킹/통계의 기반, 영구 보관)
 CREATE TABLE IF NOT EXISTS daily (
   date TEXT NOT NULL,
   platform TEXT NOT NULL,
@@ -97,25 +93,60 @@ CREATE TABLE IF NOT EXISTS collector_status (
   total_viewers INTEGER,
   duration_ms INTEGER
 );
+
+CREATE TABLE IF NOT EXISTS kv (
+  key TEXT PRIMARY KEY,
+  value TEXT,
+  updated_at INTEGER
+);
 `;
 
-export function openDb(file) {
-  if (file !== ':memory:') fs.mkdirSync(path.dirname(file), { recursive: true });
-  const db = new DatabaseSync(file);
-  db.exec('PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA foreign_keys = OFF; PRAGMA busy_timeout = 5000;');
-  db.exec(SCHEMA);
-  return db;
+export function openDb(cfg) {
+  const url = typeof cfg === 'string' ? cfg : cfg.dbUrl;
+  if (url.startsWith('file:') && !url.includes(':memory:')) {
+    fs.mkdirSync(path.dirname(path.resolve(url.slice(5))), { recursive: true });
+  }
+  return createClient({ url, authToken: typeof cfg === 'string' ? undefined : cfg.dbAuthToken || undefined });
 }
 
-/** 콜백을 하나의 트랜잭션으로 실행 */
-export function tx(db, fn) {
-  db.exec('BEGIN');
-  try {
-    const r = fn();
-    db.exec('COMMIT');
-    return r;
-  } catch (err) {
-    db.exec('ROLLBACK');
-    throw err;
+const migrated = new WeakSet();
+export async function migrate(db) {
+  if (migrated.has(db)) return;
+  await db.executeMultiple(SCHEMA);
+  migrated.add(db);
+}
+
+export async function all(db, sql, args = []) {
+  return (await db.execute({ sql, args })).rows;
+}
+
+export async function get(db, sql, args = []) {
+  return (await db.execute({ sql, args })).rows[0];
+}
+
+export async function run(db, sql, args = []) {
+  return db.execute({ sql, args });
+}
+
+/** 문장 묶음을 나눠서 batch 실행 (각 묶음은 하나의 트랜잭션) */
+export async function batch(db, statements, size = 400) {
+  for (let i = 0; i < statements.length; i += size) {
+    await db.batch(statements.slice(i, i + size), 'write');
   }
+}
+
+export async function kvGet(db, key, fallback = null) {
+  const r = await get(db, 'SELECT value FROM kv WHERE key = ?', [key]);
+  if (!r) return fallback;
+  try {
+    return JSON.parse(r.value);
+  } catch {
+    return fallback;
+  }
+}
+
+export async function kvSet(db, key, value, ts = Math.floor(Date.now() / 1000)) {
+  await run(db, `
+    INSERT INTO kv (key, value, updated_at) VALUES (?, ?, ?)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`, [key, JSON.stringify(value), ts]);
 }
