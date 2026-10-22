@@ -1,3 +1,4 @@
+import { all } from '../db.js';
 import { fetchJson, fetchText } from '../util.js';
 
 /**
@@ -62,15 +63,34 @@ export function quotaDate(ms = Date.now()) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(ms);
 }
 
+/** 일반 객체를 Map 처럼 다루는 래퍼 (상태를 JSON 으로 DB에 저장하기 위해) */
+function objMap(o) {
+  return {
+    has: (k) => Object.hasOwn(o, k),
+    get: (k) => o[k],
+    set: (k, v) => {
+      o[k] = v;
+    },
+    delete: (k) => {
+      delete o[k];
+    },
+    keys: () => Object.keys(o),
+    entries: () => Object.entries(o),
+    get size() {
+      return Object.keys(o).length;
+    },
+  };
+}
+
 const chunk = (arr, n) => Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n));
 
-export function createYoutubeCollector(cfg, { db, now = () => Date.now() } = {}) {
-  const quota = { date: null, used: 0 };
-  const candidates = new Map(); // videoId → 후보에 추가된 시각
-  const skipped = new Map(); // videoId → 라이브가 아니거나 제외 대상으로 확인된 시각
-  const channels = new Map(); // channelId → { image, handle }
-  let lastSearch = 0;
-  let lastRss = 0;
+export function createYoutubeCollector(cfg, { db, state = {}, now = () => Date.now() } = {}) {
+  // 서버리스 환경에서도 호출 간에 이어지도록 상태는 state(→ DB kv)에 둔다
+  const st = (state.youtube ??= {});
+  const quota = (st.quota ??= { date: null, used: 0 });
+  const candidates = objMap((st.candidates ??= {})); // videoId → 후보에 추가된 시각
+  const skipped = objMap((st.skipped ??= {})); // videoId → 라이브가 아니거나 제외 대상으로 확인된 시각
+  const channels = objMap((st.channels ??= {})); // channelId → { image, handle }
 
   const remaining = () => (quota.date === quotaDate(now()) ? cfg.youtubeDailyQuota - quota.used : cfg.youtubeDailyQuota);
   const spend = (units) => {
@@ -161,20 +181,21 @@ export function createYoutubeCollector(cfg, { db, now = () => Date.now() } = {})
 
     async fetchLives() {
       const t = now();
-      for (const [id, at] of skipped) if (t - at > 7 * DAY) skipped.delete(id);
+      for (const [id, at] of skipped.entries()) if (t - at > 2 * DAY) skipped.delete(id);
+      if (channels.size > 5000) for (const k of channels.keys()) channels.delete(k);
 
-      if (t - lastSearch >= cfg.youtubeSearchIntervalMin * 60000) {
-        lastSearch = t;
+      if (t - (st.lastSearch || 0) >= cfg.youtubeSearchIntervalMin * 60000) {
+        st.lastSearch = t;
         await discover(t);
       }
-      if (cfg.youtubeChannelIds.length && t - lastRss >= cfg.youtubeRssIntervalMin * 60000) {
-        lastRss = t;
+      if (cfg.youtubeChannelIds.length && t - (st.lastRss || 0) >= cfg.youtubeRssIntervalMin * 60000) {
+        st.lastRss = t;
         await pollRss(t);
       }
 
       // 이미 방송 중으로 기록된 영상(재시작 후에도 이어서 추적)
       const open = db
-        ? db.prepare("SELECT stream_key FROM streams WHERE platform = 'youtube' AND ended_at IS NULL").all().map((r) => r.stream_key)
+        ? (await all(db, "SELECT stream_key FROM streams WHERE platform = 'youtube' AND ended_at IS NULL")).map((r) => String(r.stream_key))
         : [];
       const ids = [...new Set([...candidates.keys(), ...open])];
 
@@ -210,7 +231,7 @@ export function createYoutubeCollector(cfg, { db, now = () => Date.now() } = {})
 
       await loadChannels(lives.map((v) => v.snippet?.channelId).filter(Boolean));
       return lives
-        .map((v) => normalizeYoutubeVideo(v, channels.get(v.snippet?.channelId)))
+        .map((v) => normalizeYoutubeVideo(v, st.channels[v.snippet?.channelId]))
         .filter((x) => x.channelId && x.viewers >= cfg.minViewers);
     },
 
